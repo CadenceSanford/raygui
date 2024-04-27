@@ -1366,9 +1366,10 @@ static bool guiControlExclusiveMode = false;    // Gui control exclusive mode (n
 static Rectangle guiControlExclusiveRec = { 0 }; // Gui control exclusive bounds rectangle, used as an unique identifier
 
 static int textBoxCursorIndex = 0;              // Cursor index, shared by all GuiTextBox*()
-//static int blinkCursorFrameCounter = 0;       // Frame counter for cursor blinking
+static int blinkCursorFrameCounter = 0;       // Frame counter for cursor blinking
 static int autoCursorCooldownCounter = 0;       // Cooldown frame counter for automatic cursor movement on key-down
 static int autoCursorDelayCounter = 0;          // Delay frame counter for automatic cursor movement
+static bool solidCursorMode = false;
 
 //----------------------------------------------------------------------------------
 // Style data array for all gui style properties (allocated on data segment by default)
@@ -2447,6 +2448,10 @@ int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
         #define RAYGUI_TEXTBOX_AUTO_CURSOR_DELAY      1        // Frames delay for autocursor movement
     #endif
 
+    // CUSTOM: Used for console toggle
+    // TODO: Consider a better way to handle this
+    if (IsKeyPressed(KEY_GRAVE)) return 0;
+
     int result = 0;
     GuiState state = guiState;
 
@@ -2469,6 +2474,10 @@ int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
     if (cursor.height >= bounds.height) cursor.height = bounds.height - GuiGetStyle(TEXTBOX, BORDER_WIDTH)*2;
     if (cursor.y < (bounds.y + GuiGetStyle(TEXTBOX, BORDER_WIDTH))) cursor.y = bounds.y + GuiGetStyle(TEXTBOX, BORDER_WIDTH);
 
+    const int cursorPadding = 4;
+    cursor.y += cursorPadding;
+    cursor.height -= cursorPadding * 2;
+
     // Mouse cursor rectangle
     // NOTE: Initialized outside of screen
     Rectangle mouseCursor = cursor;
@@ -2485,8 +2494,8 @@ int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
     }
 
     // Blink-cursor frame counter
-    //if (!autoCursorMode) blinkCursorFrameCounter++;
-    //else blinkCursorFrameCounter = 0;
+    if (!solidCursorMode) blinkCursorFrameCounter++;
+    else blinkCursorFrameCounter = 0;
 
     // Update control
     //--------------------------------------------------------------------
@@ -2710,7 +2719,7 @@ int GuiTextBox(Rectangle bounds, char *text, int textSize, bool editMode)
     // Draw cursor
     if (editMode && !GuiGetStyle(TEXTBOX, TEXT_READONLY))
     {
-        //if (autoCursorMode || ((blinkCursorFrameCounter/40)%2 == 0))
+        if (solidCursorMode || ((blinkCursorFrameCounter/40)%2 == 0))
         GuiDrawRectangle(cursor, 0, BLANK, GetColor(GuiGetStyle(TEXTBOX, BORDER_COLOR_PRESSED)));
 
         // Draw mouse position cursor (if required)
